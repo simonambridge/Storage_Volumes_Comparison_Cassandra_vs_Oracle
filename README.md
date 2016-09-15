@@ -239,7 +239,7 @@ SQL> create or replace directory xtern_data_dir as '/app/oracle/downloads';
 
 Directory created.
 </pre>
-Grant access to our BUL_LOAD user:
+Grant access to our BULK_LOAD user:
 <pre lang="sql">
 SQL> grant read,write on directory xtern_data_dir to bulk_load;
 
@@ -249,32 +249,35 @@ Grant succeeded.
 
 <h2>Create An External File Directory</h2>
 This is how Oracle reads a text file and manages it as an external table.
-COnnect as our user:
+Connect as our user:
 <pre lang="sql">
 SQL> connect bulk_load/bulk_load;
 Connected.
 </pre>
-Create the 'virtual' table based on the source data file:
+Create the 'virtual' table based on the source data file.
+>The data is rather inconsistent in terms of enforcing format and type. I don't want to have to spend a lifetime data-cleansing all 6.1 m records before starting this project so tyhr initial load into Oracle is in text format.
+In the first test we will see what happens to data when it is transferred into Oracle and then to DSE/Cassandra, all in text format. This will make an interesting baseline comparison.
+The second part of the exercise will be to build a more representative test by storing the data using a wider variety of datatypes, e.g. decimal, binary, date etc.
 <pre lang="sql">
 drop table xternal_crime_data;
 create table xternal_crime_data
-(ID             		varchar2(30),
+(ID             			varchar2(30),
 Case_Number				varchar2(30),
-Incident_Date			varchar2(30),
+Incident_Date				varchar2(30),
 Block					varchar2(60),
 IUCR					varchar2(30),
-Primary_Type			varchar2(60),
+Primary_Type				varchar2(60),
 Description				varchar2(120),
-Location_Description	varchar2(60),
+Location_Description		varchar2(60),
 Arrest					varchar2(60),
 Domestic				varchar2(60),
 Beat					varchar2(30),
 District				varchar2(30),
 Ward					varchar2(30),
-Community_Area			varchar2(30),
+Community_Area				varchar2(30),
 FBI_Code				varchar2(10),
-X_Coordinate			varchar2(30),
-Y_Coordinate			varchar2(30),
+X_Coordinate				varchar2(30),
+Y_Coordinate				varchar2(30),
 Year					varchar2(30),
 Updated_On				varchar2(30),
 Latitude				varchar2(30),
@@ -375,7 +378,9 @@ SQL> alter table crime_data add constraint crime_data_pk primary key(id);
 Table altered.
 </pre>
 
-We now have our primary key showing as a "NOT NULL" column.
+We now have an index on our primary key which is now showing as a "NOT NULL" column.
+Of course in the real-world, we would make Crime ID a unique index, but for this exercise I wanted to avoid having to worry about duplicate keys.
+
 <pre lang="sql">
 SQL> desc crime_data
  Name				   Null?    Type
