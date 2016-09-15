@@ -1,7 +1,28 @@
 <h1>Migrating A Large Data Set From CSV To Oracle To Cassandra - A look at storage impact</h1>
-The objective of this exercise is to demonstrate how the migration of data from CSV to Oracle to Cassandra changes the required storage volume of the data. 
+The objective of this exercise is to demonstrate how the migration of data from CSV to Oracle to Cassandra can change the required underlying storage volume of the data. How do data volumes change between pure ASCII source records versus records stored in tables in an Oracle database versus records stored in tables in a DSE/Cassandra database?
 
-I'll be using the DataFrame capability introduced in Apache Spark 1.3 to load data from tables in an Oracle database (12c) via Oracle's JDBC thin driver, then save from Oracle to Cassandra.
+Here is the high-level plan:
+<ul>
+<li>
+Start out with a 1.4 GB CSV data file containing 6.1 million crime records from the Chicago Police Department for the period 2001-2016
+</li>
+<li>
+Define this file as an external data file in Oracle 12c 
+</li>
+<li>
+Read the external data file into a physical Oracle database table 
+</li>
+<li>
+Use the Spark DataFrame capability introduced in Apache Spark 1.3 to load data from tables in the Oracle database via Oracle's JDBC thin driver
+</li>
+<li>
+Save the data in the dataframe to Cassandra
+</li>
+<li>
+Compare the volumes used by the data in Oracle versus DSE/Cassandra
+</li>
+/ul>
+
 
 <h2>Pre-requisites</h2>
 <h3> DataStax Enterprise (release 5.0.2 at time of publication)</h3>
@@ -345,7 +366,7 @@ SQL> desc xternal_crime_data
 
 So far Oracle hasn't actually looked at the data yet. When we try to read the table the records will be read and validated. 
 
-Now tell me how many records there are in my external 'table' - just over 6 million:
+Check how many records there are in the original (source) external 'table' - just over 6 million:
 <pre lang="sql">
 SQL> select count(*) from xternal_crime_data;
 
@@ -354,7 +375,7 @@ SQL> select count(*) from xternal_crime_data;
    6156888
 </pre>
 
-You can watch for errors or bad records using tail or less on these files - log output will be to the default directory that was specified in the create external table statement:
+You can watch for errors or bad records while the data is being imported using tail or less on these files - log output will be to the default directory that was specified in the create external table statement:
 <pre>
 $ rm /app/oracle/downloads/*.bad
 $ rm /app/oracle/downloads/*.log
