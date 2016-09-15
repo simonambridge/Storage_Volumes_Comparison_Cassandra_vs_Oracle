@@ -21,7 +21,7 @@ Save the data in the dataframe to Cassandra
 <li>
 Compare the volumes used by the data in Oracle versus DSE/Cassandra
 </li>
-/ul>
+</ul>
 
 
 <h2>Pre-requisites</h2>
