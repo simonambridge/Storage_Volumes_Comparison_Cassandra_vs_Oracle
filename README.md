@@ -868,11 +868,15 @@ This indicates that the size of the same dataset stored in ASCII/text format in 
 In the case of this data, stored with a more realistic real-world Cassandra data replication factor of 3, the volume of data in a multi-node Cassandra datacenter would be 876 MB x 3 = 2,700 MB.
 Assuming the customer has fairly fast machines with fast, locally attached SSD storage, each DSE/Cassandra node might be expected to store 1 TB, so an initial cluster size of 3-5 machines would be recommended.
 
-This might not affect any 
-
+Of course, it is also tru that this is just one test with one table. in a "real-world" situation there may potentially be only a few tables, or a large number of tables. This data will need to be re-modelled, not just copied, when it moves from an Oracle relational model to a distributed, replicated NoSQL database model. The re-modelling, or transformation, usually involves an element of data de-normalisation and duplication, and in some cases this may have a significant impact on the volume of storage and DSE/Cassandra nodes that are reqiured to accommodate the same data in DSE/Cassandra.<p>
+<br>
 Now to mix it up a bit with numeric values and see how that changes things...<p>
 <br>
-We can drop some of the stuff we don't need anymore.
+<H2>Migrate Data Using Other (e.g. Numeric And Boolean) Data Types</h2>
+The previous part of the exercise was to tranfer data across from Oracle to Cassandra, storing the data in text format in both systems.
+Now in the next part we are going to use a richer array of datatypes to make our data sizing more interesting - and more realistic.
+
+We can drop some of the stuff that we've been using that we don't need anymore.
 In SQL Plus:
 SQL> connect bulk_load/bulk_load;
 connected
