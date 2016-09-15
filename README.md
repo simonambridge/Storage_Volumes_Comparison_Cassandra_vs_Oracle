@@ -838,6 +838,11 @@ Now to mix it up a bit with numeric values and see how that changes things...<p>
 <br>
 We can drop some of the stuff we don't need anymore.
 In SQL Plus:
+SQL> connect bulk_load/bulk_load;
+connected
+</pre>
+<drop the tables from the last exercise:
+<pre lang="sql">
 SQL> truncate table crime_data;
 
 Table truncated.
@@ -847,44 +852,15 @@ SQL> drop table crime_data;
 Table dropped.
 
 SQL> 
-
+</pre>
+<pre lang="sql")
 In cq;sh:
 cqlsh:bulk_load> truncate table crimes;
 cqlsh:bulk_load> drop table crimes;
-
-
-<h2>Create Oracle and Cassandra Tables Using Numeric columns<h2>
-<br><br><br>
-<P>
-<h1>Notes</h1>
-
-<pre>
-						Oracle			Cassandra
-						--------------- --------------
-ID             			varchar2(30)	bigint
-Case Number				varchar2(30)	text
-Date					varchar2(30)			timeuuid
-Block					varchar2(60)	text
-IUCR					varchar2(30)	text
-Primary Type			varchar2(60)	text
-Description				varchar2(120)	text
-Location Description	varchar2(60)	text
-Arrest					varchar2(60)	boolean
-Domestic				varchar2(60)	boolean
-Beat					varchar2(60)			int
-District				number			int
-Ward					number			int
-Community Area			number			int
-FBI Code				varchar2(10)	text
-X Coordinate			number			bigint
-Y Coordinate			number			bigint
-Year					number			int
-Updated On				date			timeuuid
-Latitude				number			decimal
-Longitude				number			decimal
-Location				varchar2(30)	text
 </pre>
-<i>Our source file is a 
+
+<H1>Appendix 1 - Other Stuff</H1>
+<i>An alternative interesting-looking source file is an airline flight performance statistics 
 http://www.transtats.bts.gov/DL_SelectFields.asp?Table_ID=236&DB_Short_Name=On-Time
 the file expands to 200MB
 
