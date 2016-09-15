@@ -410,6 +410,11 @@ SQL> desc crime_data
 </pre>
 <br>
 <h2>Check Volumes In Oracle</h2>
+At this point we have loaded the CSV source data (1.6 GB, 6.1 million rows) into an Oracle table.
+We need to find out how big is it?
+
+<h3>What Objects Have We Created?</h3>
+What objects does bulk_load own - the system dictionary table DBA_TABLES will tell us:
 <pre lang="sql">
 SQL> connect / as sysdba
 </pre>
@@ -423,7 +428,9 @@ CRIME_DATA
 XTERNAL_CRIME_DATA
 </pre>
 
-Run this query to determine total storage for a user including indexes, blobs etc. You will be prompted for the Oracle user to check, in uppercase - in my case BULK_LOAD:
+<h3>How Much SPace Is Oracle Using?</h3>
+
+Run this next query to determine total storage for a user including indexes, blobs etc. You will be prompted for the Oracle user to check, in uppercase - in my case BULK_LOAD:
 
 <pre lang="sql">
 COLUMN TABLE_NAME FORMAT A32
