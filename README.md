@@ -231,7 +231,7 @@ SQL> alter user bulk_load temporary tablespace "TEMP";
 User altered.
 </pre>
 <br>
-<h2>Create An External File Directory</h2>
+<h2>Define An External File Directory</h2>
 This is how Oracle reads and manages flat files, allowing them to be manipulated as virtual tables. Great for loading data!
 
 <pre lang="sql">
@@ -239,6 +239,7 @@ SQL> create or replace directory xtern_data_dir as '/app/oracle/downloads';
 
 Directory created.
 </pre>
+
 Grant access to our BULK_LOAD user:
 <pre lang="sql">
 SQL> grant read,write on directory xtern_data_dir to bulk_load;
@@ -247,7 +248,7 @@ Grant succeeded.
 </pre>
 
 
-<h2>Create An External File Directory</h2>
+<h2>Define An External File Table</h2>
 This is how Oracle reads a text file and manages it as an external table.
 Connect as our user:
 <pre lang="sql">
@@ -255,8 +256,10 @@ SQL> connect bulk_load/bulk_load;
 Connected.
 </pre>
 Create the 'virtual' table based on the source data file.
->The data is rather inconsistent in terms of enforcing format and type. I don't want to have to spend a lifetime data-cleansing all 6.1 m records before starting this project so tyhr initial load into Oracle is in text format.
-In the first test we will see what happens to data when it is transferred into Oracle and then to DSE/Cassandra, all in text format. This will make an interesting baseline comparison.
+
+>The data is rather inconsistent in terms of enforcing format and type. I don't want to have to spend a lifetime data-cleansing all 6.1 m records before starting this project so the CSV load into Oracle is in pure text format.
+
+In the first test we will see what happens to data when it is transferred into Oracle and then to DSE/Cassandra, all in text format. This will make an interesting baseline comparison.<p>
 The second part of the exercise will be to build a more representative test by storing the data using a wider variety of datatypes, e.g. decimal, binary, date etc.
 <pre lang="sql">
 drop table xternal_crime_data;
