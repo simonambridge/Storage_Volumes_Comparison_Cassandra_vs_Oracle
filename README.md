@@ -214,11 +214,10 @@ $ cat Crimes_-_2001_to_present.csv | wc
 </pre>
 <br>
 <h2>Create An Oracle User</h2>
-We need an owner of the tables we're going to create.
-Log into Oracle SQLPlus to get to the SQL prompt
-<li>depending on your privileges you may be asked for a password</li>
-<li>You need to be sys or system to run these steps)..</li>
-<li>If you're already logged into SQLPlus as a non-system user, type "connect / as sysdba"</li>
+We need an owner of the tables we're going to create. We'll create a user called BULK_LOAD.
+To do this we need to log into Oracle SQLPlus as a privileged user (SYS or SYSTEM) to get to the SQL prompt
+<li>depending on your privileges you may be asked for a password when you log in as SYS or SYSTEM</li>
+<li>If you're already logged into SQLPlus as a non-system user, just type "connect / as sysdba" at the SQL> prompt</li>
 <p>
 Log in to SQLPlus:
 <pre lang="sql">
@@ -232,7 +231,7 @@ Run this command to allow local User ID's to be created:
 SQL> alter session set "_ORACLE_SCRIPT"=true; 
 </pre>
 
-Create the user BULK_LOAD and set the password to be the same :
+Create the user BULK_LOAD and set the password to be the same as the user name:
 <pre lang="sql">
 SQL> create user bulk_load identified by bulk_load;
 
