@@ -59,9 +59,9 @@ Installation instructions for DSE are provided at the top of this doc. I'll show
 As root create ```/etc/yum.repos.d/datastax.repo```
 <pre># vi /etc/yum.repos.d/datastax.repo
 </pre>
-<br>
-Paste in these lines:
 
+Paste in these lines:
+<pre>
 [datastax] 
 name = DataStax Repo for DataStax Enterprise
 baseurl=https://datastaxrepo_gmail.com:utJVKEg4lKeaWTX@rpm.datastax.com/enterprise
