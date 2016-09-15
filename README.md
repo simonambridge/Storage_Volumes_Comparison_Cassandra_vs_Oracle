@@ -216,41 +216,49 @@ $ cat Crimes_-_2001_to_present.csv | wc
 <br>
 <h2>Create An Oracle User</h2>
 We need an owner of the tables we're going to create.
+Log into Oracle SQLPlus to get to the SQL prompt
+<li>depending on your privileges you may be asked for a password</li>
+<li>You need to be sys or system to run these steps)..</li>
+<li>If you're already logged into SQLPlus as a non-system user, type "connect / as sysdba"</li>
+<p>
+Log in to SQLPlus:
 <pre lang="sql">
-SQL> connect sys as sysdba
-Enter password: 
+$ sqlplus / as sysdba
+ 
 Connected.
 </pre>
-Run this command to allow local User ID's to be created:
 
+Run this command to allow local User ID's to be created:
 <pre lang="sql">
 SQL> alter session set "_ORACLE_SCRIPT"=true; 
 </pre>
 
+Create the user BULK_LOAD and set the password to be the same :
 <pre lang="sql">
 SQL> create user bulk_load identified by bulk_load;
 
 User created.
 </pre>
 
+Grant everything to BULK_LOAD (the old-fashioned way):
 <pre lang="sql">
 SQL> grant connect, resource, dba to bulk_load;
 
 Grant succeeded.
 </pre>
 
+Set default user and temporary tablespaces:
 <pre lang="sql">
 SQL> alter user bulk_load default tablespace "USERS";
 
 User altered.
-</pre>
 
-<pre lang="sql">
 SQL> alter user bulk_load temporary tablespace "TEMP";
 
 User altered.
 </pre>
 <br>
+
 <h2>Define An External File Directory</h2>
 This is how Oracle reads and manages flat files, allowing them to be manipulated as virtual tables. Great for loading data!
 
