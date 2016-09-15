@@ -61,7 +61,7 @@ As root create ```/etc/yum.repos.d/datastax.repo```
 </pre>
 <br>
 Paste in these lines:
-<pre>
+
 [datastax] 
 name = DataStax Repo for DataStax Enterprise
 baseurl=https://datastaxrepo_gmail.com:utJVKEg4lKeaWTX@rpm.datastax.com/enterprise
