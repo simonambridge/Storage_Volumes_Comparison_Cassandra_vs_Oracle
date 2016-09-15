@@ -208,7 +208,7 @@ ID,Case Number,Date,Block,IUCR,Primary Type,Description,Location Description,Arr
 We will have to build a table in Oracle for the first import of the data. When we have the data in Oracle we can assess the volume of space occupied by database tables.
 We then migrate the data to Cassandra from Oracle using Spark and see how much space is occupied in Cassandra. <p>
 
-Wordcount tells me there are just over 6 million records (about 1.5 GB CSV file):
+Wordcount tells me there are just over 6 million records (about 1.4 GB CSV file):
 <pre>
 $ cat Crimes_-_2001_to_present.csv | wc
  6156888 69665305 1449194734
