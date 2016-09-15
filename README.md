@@ -864,7 +864,7 @@ Table dropped.
 SQL> 
 </pre>
 In cqlsh:
-<pre lang="sql")
+<pre lang="sql">
 cqlsh:bulk_load> truncate table crimes;
 cqlsh:bulk_load> drop table crimes;
 </pre>
