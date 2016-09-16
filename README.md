@@ -457,7 +457,7 @@ CRIME_DATA
 XTERNAL_CRIME_DATA
 </pre>
 
-<h3>How Much SPace Is Oracle Using?</h3>
+<h3>How Much Space Is Oracle Using?</h3>
 
 Run this next query to determine total storage for a user including indexes, blobs etc. You will be prompted for the Oracle user to check, in uppercase - in my case BULK_LOAD:
 
