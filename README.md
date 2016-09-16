@@ -338,14 +338,12 @@ ORA-29913: error in executing ODCIEXTTABLEFETCH callout
 ORA-30653: reject limit reached
 </pre>
 
-If we describe the 'table' it matches the format of the file it's based on:
+If we describe the 'table' it matches the format of the physical file it's based on:
 <pre lang="sql">
 SQL> desc xternal_crime_data
  Name					   Null?    Type
  ----------------------------------------- -------- ----------------------------
- Name					   Null?    Type
- ----------------------------------------- -------- ----------------------------
- ID						    VARCHAR2(30)
+ ID                                                 VARCHAR2(30)
  CASE_NUMBER					    VARCHAR2(30)
  INCIDENT_DATE					    VARCHAR2(30)
  BLOCK						    VARCHAR2(60)
@@ -391,18 +389,18 @@ Nothing happens until you attempt to read data from the table. You can track pro
 <h2>Create A Table, Physically Load Data Into Oracle</h2>
 Create a physical table in the Oracle database using the "...as select" SQL syntax:
 <pre lang="sql">
-SQL> create table crime_data as select * from xternal_crime_data;
+SQL> create table crimes as select * from xternal_crime_data;
 </pre>
 
 Let's put a primary key and index on that table:
 <pre lang="sql">
-SQL> create index crime_id on crime_data(id);
+SQL> create index crime_id on crimes(id);
 
 Index created.
 </pre>
 
 <pre lang="sql">
-SQL> alter table crime_data add constraint crime_data_pk primary key(id);
+SQL> alter table crimes add constraint crimes_pk primary key(id);
 
 Table altered.
 </pre>
@@ -411,7 +409,7 @@ We now have an index on our primary key which is now showing as a "NOT NULL" col
 Of course in the real-world, we would make Crime ID a unique index, but for this exercise I wanted to avoid having to worry about duplicate keys.
 
 <pre lang="sql">
-SQL> desc crime_data
+SQL> desc crimes
  Name				   Null?    Type
  --------------------- -------- ----------------------------
  ID					   NOT NULL VARCHAR2(30)
@@ -453,7 +451,7 @@ SQL> select table_name from dba_tables where owner = 'BULK_LOAD';
 
 TABLE_NAME
 --------------------------------------------------------------------------------
-CRIME_DATA
+CRIMES
 XTERNAL_CRIME_DATA
 </pre>
 
@@ -503,14 +501,14 @@ ORDER BY SUM(bytes) desc
 <pre>
 OWNER	   TABLE_NAME				   MEG	  PERCENT
 ---------- -------------------------------- ---------- ----------
-BULK_LOAD  CRIME_DATA				  1672	      100
+BULK_LOAD  CRIMES    				  1672	      100
 </pre>
 
 
 So a 1.4GB CSV file has become 1.7GB of storage in Oracle.<p>
 <br>
 <H1>Copy Data From Oracle To Cassandra</H1>
-We now have 1.6GB of data in Oracle. 
+We now have 1.7GB of data in Oracle. 
 The next objective is to see how much space that 1.7GB occupies when it is copied to Cassandra, and what impact Cassandra on-disk compression and the new Cassandra 3.0 storage engine will have on those numbers.
 
 
@@ -863,12 +861,18 @@ Keyspace: bulk_load
 This indicates that the size of the same dataset stored in ASCII/text format in the three formats is as follows:
 - CSV (text) 1.4 GB
 - Oracle (as text) 1.7 GB
-- Cassandra (as text) 876MB
+- Cassandra (as text) 876MB Compressed.
 
-In the case of this data, stored with a more realistic real-world Cassandra data replication factor of 3, the volume of data in a multi-node Cassandra datacenter would be 876 MB x 3 = 2,700 MB.
+The nodetool cfstats show us that the data in Cassandra has a compression ratio of 46% of the original size. The uncompressed size would be closer to 1.9 GB. 
+Compression is on by default in Cassandra 3. If we repeat the above exercise on a Cassandra table with compression turned off (using "WITH compression = { 'sstable_compression' : '' };" on the create table statement) we get the following:
+> stats pending
+
+
+
+In the case of this compressed data, stored with a real-world Cassandra data replication factor of 3, the volume of data in a multi-node Cassandra datacenter would be 876 MB x 3 = 2,700 MB.
 Assuming the customer has fairly fast machines with fast, locally attached SSD storage, each DSE/Cassandra node might be expected to store 1 TB, so an initial cluster size of 3-5 machines would be recommended.
 
-Of course, it is also tru that this is just one test with one table. in a "real-world" situation there may potentially be only a few tables, or a large number of tables. This data will need to be re-modelled, not just copied, when it moves from an Oracle relational model to a distributed, replicated NoSQL database model. The re-modelling, or transformation, usually involves an element of data de-normalisation and duplication, and in some cases this may have a significant impact on the volume of storage and DSE/Cassandra nodes that are reqiured to accommodate the same data in DSE/Cassandra.<p>
+Of course, it is also true that this is just one test with one table. in a "real-world" situation there may potentially be only a few tables, or a large number of tables. This data will need to be re-modelled, not just copied, when it moves from an Oracle relational model to a distributed, replicated NoSQL database model. The re-modelling, or transformation, usually involves an element of data de-normalisation and duplication, and in some cases this may have a significant impact on the volume of storage and the consequent number of DSE/Cassandra nodes that are required to accommodate the same data in DSE/Cassandra.<p>
 <br>
 Now to mix it up a bit with numeric values and see how that changes things...<p>
 <br>
