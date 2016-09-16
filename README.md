@@ -573,7 +573,7 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.{SparkConf, SparkContext}
 import java.io._
 </pre>
-Next, load the data from the Oracle table using jdbc.
+Next, load the data from the Oracle table using jdbc.<p>
 For Spark versions below 1.4:
 <pre lang="scala">
 scala> val crimes = sqlContext.load("jdbc", Map("url" -> "jdbc:oracle:thin:bulk_load/bulk_load@localhost:1521/orcl", "dbtable" -> "crime_data"))
@@ -728,7 +728,7 @@ CREATE TABLE bulk_load.crimes (
 
 > Note that there are no settings for compression shown for this table - the data will not be compressed.
 
-Nack to Spark for the next bit...
+Back to Spark for the next bit...
 
 <h2>Change DataFrame Columns To Lower Case</h2>
 
@@ -857,6 +857,7 @@ cqlsh:bulk_load> select * from crimes where id='3666345';
 
 At the end of the run I used nodetool to tell me how much space had been occupied in Cassandra:
 <pre>
+$ nodetool tablestats bulk_load
 Keyspace: bulk_load
 	Read Count: 0
 	Read Latency: NaN ms.
@@ -877,14 +878,13 @@ Keyspace: bulk_load
 </PRE>
 
 <h2>ASCII Storage - Analysis</h2>
-After the import into Cassandra has completed we can get some information about data size in Cassandra from the nodetool tablestats command:
-
-This indicates that the size of the same dataset stored in ASCII/text format in the three formats is as follows:
-- CSV (text) 1.4 GB
-- Oracle (as text) 1.7 GB
-- Cassandra (as text) 1.7 GB
-
-When the test was run with compression on the data in Cassandra was 876MB, with a reported compression ratio of 46% of the original size.
+We now have the sizes of the data in each of the three formats:
+<ul>
+<li>CSV (text) 1.4 GB<l/i>
+<li>Oracle (as text) 1.7 GB</li>
+<li>Cassandra (as text) 1.7 GB - uncompressed</li>
+<li>Cassandra (as text) 876 MB - compressed</li>
+</ul>
 
 In the case of compressed data, stored with a real-world Cassandra data replication factor of 3, the volume of data in a multi-node Cassandra datacenter would be 876 MB x 3 = 2,700 MB.
 Assuming the customer has fairly fast machines with fast, locally attached SSD storage, each DSE/Cassandra node might be expected to store 1 TB, so an initial cluster size of 3-5 machines would be recommended.
