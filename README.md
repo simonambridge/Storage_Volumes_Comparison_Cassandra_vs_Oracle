@@ -546,21 +546,47 @@ I'm passing to the path to the ojdbc7.jar file on the command line (shouldn't be
 
 <pre>
 $ dse spark --driver-class-path /app/oracle/downloads/ojdbc7.jar -deprecation
+Welcome to
+      ____              __
+     / __/__  ___ _____/ /__
+    _\ \/ _ \/ _ `/ __/  '_/
+   /___/ .__/\_,_/_/ /_/\_\   version 1.6.1
+      /_/
+
+Using Scala version 2.10.5 (Java HotSpot(TM) 64-Bit Server VM, Java 1.8.0_77)
+Type in expressions to have them evaluated.
+Type :help for more information.
+Initializing SparkContext with MASTER: spark://127.0.0.1:7077
+Created spark context..
+Spark context available as sc.
+Hive context available as sqlContext. Will be initialized on first use.
+
+scala> 
 </pre>
+<h3>Import Some UsefulClasses</h3>
 
-
+Now import some classes we might need:
+<pre lang="java">
+import com.datastax.spark.connector._
+import com.datastax.spark.connector.cql.CassandraConnector
+import org.apache.log4j.{Level, Logger}
+import org.apache.spark.{SparkConf, SparkContext}
+import java.io._
+</pre>
+Next, load the data from the Oracle table using jdbc.
+For Spark versions below 1.4:
 <pre lang="scala">
 scala> val crimes = sqlContext.load("jdbc", Map("url" -> "jdbc:oracle:thin:bulk_load/bulk_load@localhost:1521/orcl", "dbtable" -> "crime_data"))
 </pre>
+For Spark 1.4 onwards:
 <pre lang="scala">
-67: warning: method load in class SQLContext is deprecated: Use read.format(source).options(options).load(). This will be removed in Spark 2.0.
-         val crimes = sqlContext.load("jdbc", Map("url" -> "jdbc:oracle:thin:bulk_load/bulk_load@localhost:1521/orcl", "dbtable" -> "crime_data"))
+scala> val crimes = sqlContext.read.format("jdbc").option("url", "jdbc:oracle:thin:bulk_load/bulk_load@localhost:1521/orcl").option("driver", "oracle.jdbc.OracleDriver").option("dbtable", "crimes").load()
 </pre>
-There's a deprecation warning message that you can ignore.
-Here's the output we're looking for, confirming that we established a valid connection to the remote database.
+Response:
 <pre lang="scala">
 crimes: org.apache.spark.sql.DataFrame = [ID: string, CASE_NUMBER: string, INCIDENT_DATE: string, BLOCK: string, IUCR: string, PRIMARY_TYPE: string, DESCRIPTION: string, LOCATION_DESCRIPTION: string, ARREST: string, DOMESTIC: string, BEAT: string, DISTRICT: string, WARD: string, COMMUNITY_AREA: string, FBI_CODE: string, X_COORDINATE: string, Y_COORDINATE: string, YEAR: string, UPDATED_ON: string, LATITUDE: string, LONGITUDE: string, LOCATION: string]
 </pre>
+
 Now that we've created a dataframe using the jdbc method shown above, we can use printSchema() to look at the dataframe schema. You'll notice that it looks a lot like a table. That's deliberate because it means that we can use it to manipulate large volumes of tabular data:
 
 <pre lang="scala">
@@ -590,35 +616,19 @@ root
  |-- LOCATION: string (nullable = true)
 </pre>
 
-We can use the dataframe .show() method to display the first 20 rows in the table:
+We can use the dataframe .show() method to display the first x:int rows in the table:
 <pre lang="scala">
-scala> crimes.show()
-+--------+-----------+--------------------+--------------------+----+-------------------+--------------------+--------------------+------+---------+-----+--------+----+--------------+--------+------------+------------+-------+--------------------+------------+--------------------+--------------+
-|      ID|CASE_NUMBER|       INCIDENT_DATE|               BLOCK|IUCR|       PRIMARY_TYPE|         DESCRIPTION|LOCATION_DESCRIPTION|ARREST| DOMESTIC| BEAT|DISTRICT|WARD|COMMUNITY_AREA|FBI_CODE|X_COORDINATE|Y_COORDINATE|   YEAR|          UPDATED_ON|    LATITUDE|           LONGITUDE|      LOCATION|
-+--------+-----------+--------------------+--------------------+----+-------------------+--------------------+--------------------+------+---------+-----+--------+----+--------------+--------+------------+------------+-------+--------------------+------------+--------------------+--------------+
-|      ID|Case Number|                Date|               Block|IUCR|       Primary Type|         Description|Location Description|Arrest| Domestic| Beat|District|Ward|Community Area|FBI Code|X Coordinate|Y Coordinate|   Year|          Updated On|    Latitude|           Longitude|      Location|
-| 3666345|   HK764692|11/18/2004 12:00:...|    118XX S LOWE AVE|0890|              THEFT|       FROM BUILDING|           RESIDENCE| false|    false| 0524|     005|  34|            53|      06|     1174110|     1826325|   2004|04/15/2016 08:55:...| 41.67883435|       -87.638323571| "(41.67883435|
-| 3666346|   HK757211|11/17/2004 08:00:...|014XX N MASSASOIT...|0560|            ASSAULT|              SIMPLE|              STREET| false|    false| 2531|     025|  29|            25|     08A|     1137744|     1909068|   2004|04/15/2016 08:55:...|41.906623511|       -87.769453017|"(41.906623511|
-| 3666347|   HK764653|11/21/2004 10:00:...|  130XX S DREXEL AVE|0910|MOTOR VEHICLE THEFT|          AUTOMOBILE|CHA PARKING LOT/G...| false|    false| 0533|     005|   9|            54|      07|     1184304|     1818785|   2004|04/15/2016 08:55:...|41.657911807|       -87.601244288|"(41.657911807|
-| 3666348|   HK761590|11/19/2004 07:45:...|063XX S HAMILTON AVE|0430|            BATTERY|AGGRAVATED: OTHER...|            SIDEWALK| false|    false| 0726|     007|  15|            67|     04B|     1163120|     1862567|   2004|04/15/2016 08:55:...|41.778524374|       -87.677540732|"(41.778524374|
-| 3666350|   HK765337|11/21/2004 06:19:...| 061XX N LINCOLN AVE|1330|  CRIMINAL TRESPASS|             TO LAND|  SMALL RETAIL STORE|  true|    false| 1711|     017|  50|            13|      26|     1152804|     1941021|   2004|04/15/2016 08:55:...|41.994019837|       -87.713281946|"(41.994019837|
-|10504143|   HZ245011|04/29/2016 01:34:...|    002XX W 104TH ST|2820|      OTHER OFFENSE|    TELEPHONE THREAT|           RESIDENCE| false|    false| 0512|     005|  34|            49|      26|     1176442|     1835975|   2016|05/06/2016 03:50:...|41.705263447|       -87.629498947|"(41.705263447|
-| 3666351|   HK766200|11/21/2004 09:00:...|  014XX N STATE PKWY|0820|              THEFT|      $500 AND UNDER|              STREET| false|    false| 1824|     018|  43|             8|      06|     1176025|     1910070|   2004|04/15/2016 08:55:...| 41.90859641|       -87.628801757| "(41.90859641|
-| 3666352|   HK756872|11/17/2004 05:00:...|   045XX W WILCOX ST|1320|    CRIMINAL DAMAGE|          TO VEHICLE|              STREET| false|    false| 1113|     011|  28|            26|      14|     1146197|     1898954|   2004|04/15/2016 08:55:...|41.878712886|       -87.738658886|"(41.878712886|
-| 3666354|   HK765887|11/19/2004 10:30:...|  035XX S PAULINA ST|0610|           BURGLARY|      FORCIBLE ENTRY|             "SCHOOL|PUBLIC|BUILDING"|false|   false|0922|           009|      11|          59|          05|1165596|             1881229|        2004|04/15/2016 08:55:...|  41.829682911|
-| 3666356|   HK766293|11/21/2004 06:00:...|     006XX W 74TH ST|1310|    CRIMINAL DAMAGE|         TO PROPERTY|           APARTMENT| false|    false| 0732|     007|  17|            68|      14|     1173139|     1855820|   2004|04/15/2016 08:55:...|41.759794269|       -87.641009607|"(41.759794269|
-| 3666357|   HK766287|11/21/2004 05:00:...|  083XX S COLFAX AVE|1320|    CRIMINAL DAMAGE|          TO VEHICLE|           RESIDENCE| false|    false| 0423|     004|   7|            46|      14|     1194953|     1850154|   2004|04/15/2016 08:55:...|41.743736757|       -87.561249019|"(41.743736757|
-| 3666358|   HK763951|11/20/2004 11:05:...|082XX S DR MARTIN...|0860|              THEFT|        RETAIL THEFT|         GAS STATION| false|    false| 0631|     006|   6|            44|      06|     1180338|     1850357|   2004|04/15/2016 08:55:...|41.744641174|       -87.614792711|"(41.744641174|
-| 3666359|   HK764785|11/20/2004 09:00:...|   056XX N MOZART ST|1320|    CRIMINAL DAMAGE|          TO VEHICLE|              STREET| false|    false| 2011|     020|  40|             2|      14|     1156332|     1937421|   2004|04/15/2016 08:55:...|41.984070441|       -87.700402289|"(41.984070441|
-| 3666360|   HK755931|11/17/2004 10:00:...|  030XX N MOBILE AVE|0484|            BATTERY|PRO EMP HANDS NO/...|             "SCHOOL|PUBLIC|BUILDING"| true|   false|2511|           025|      36|          19|         08B|1133881|             1919540|        2004|04/15/2016 08:55:...|  41.935428738|
-| 3666362|   HK765213|11/21/2004 04:00:...|  046XX N ELSTON AVE|0486|            BATTERY|DOMESTIC BATTERY ...|           APARTMENT|  true|     true| 1722|     017|  39|            14|     08B|     1146545|     1930640|   2004|04/15/2016 08:55:...|41.965655711|        -87.73657143|"(41.965655711|
-| 3666363|   HK716111|10/29/2004 02:15:...|0000X N LAVERGNE AVE|2095|          NARCOTICS|ATTEMPT POSSESSIO...|            SIDEWALK|  true|    false| 1533|     015|  28|            25|      18|     1143052|     1899700|   2004|04/15/2016 08:55:...|41.880819219|       -87.750188229|"(41.880819219|
-| 3666364|   HK764786|11/21/2004 12:10:...|     005XX N RUSH ST|0810|              THEFT|           OVER $500|PARKING LOT/GARAG...| false|    false| 1834|     018|  42|             8|      06|     1177011|     1903813|   2004|04/15/2016 08:55:...|41.891404632|       -87.625369395|"(41.891404632|
-| 3666365|   HK762241|11/20/2004 03:45:...|  061XX S JUSTINE ST|0486|            BATTERY|DOMESTIC BATTERY ...|           APARTMENT| false|     true| 0713|     007|  15|            67|     08B|     1167059|     1864042|   2004|04/15/2016 08:55:...| 41.78248862|       -87.663057935| "(41.78248862|
-| 3666366|   HK765012|11/21/2004 02:20:...|016XX N SPAULDING...|0486|            BATTERY|DOMESTIC BATTERY ...|           APARTMENT| false|     true| 1422|     014|  26|            23|     08B|     1153891|     1910739|   2004|04/15/2016 08:55:...|41.910902295|       -87.710093524|"(41.910902295|
-+--------+-----------+--------------------+--------------------+----+-------------------+--------------------+--------------------+------+---------+-----+--------+----+--------------+--------+------------+------------+-------+--------------------+------------+--------------------+--------------+
-only showing top 20 rows
-
+scala> crimes.show(5)
++-------+-----------+--------------------+--------------------+----+-------------------+--------------------+--------------------+------+--------+----+--------+----+--------------+--------+------------+------------+----+--------------------+------------+-------------+--------------+
+|     ID|CASE_NUMBER|       INCIDENT_DATE|               BLOCK|IUCR|       PRIMARY_TYPE|         DESCRIPTION|LOCATION_DESCRIPTION|ARREST|DOMESTIC|BEAT|DISTRICT|WARD|COMMUNITY_AREA|FBI_CODE|X_COORDINATE|Y_COORDINATE|YEAR|          UPDATED_ON|    LATITUDE|    LONGITUDE|      LOCATION|
++-------+-----------+--------------------+--------------------+----+-------------------+--------------------+--------------------+------+--------+----+--------+----+--------------+--------+------------+------------+----+--------------------+------------+-------------+--------------+
+|     ID|Case Number|                Date|               Block|IUCR|       Primary Type|         Description|Location Description|Arrest|Domestic|Beat|District|Ward|Community Area|FBI Code|X Coordinate|Y Coordinate|Year|          Updated On|    Latitude|    Longitude|      Location|
+|3666345|   HK764692|11/18/2004 12:00:...|    118XX S LOWE AVE|0890|              THEFT|       FROM BUILDING|           RESIDENCE| false|   false|0524|     005|  34|            53|      06|     1174110|     1826325|2004|04/15/2016 08:55:...| 41.67883435|-87.638323571| "(41.67883435|
+|3666346|   HK757211|11/17/2004 08:00:...|014XX N MASSASOIT...|0560|            ASSAULT|              SIMPLE|              STREET| false|   false|2531|     025|  29|            25|     08A|     1137744|     1909068|2004|04/15/2016 08:55:...|41.906623511|-87.769453017|"(41.906623511|
+|3666347|   HK764653|11/21/2004 10:00:...|  130XX S DREXEL AVE|0910|MOTOR VEHICLE THEFT|          AUTOMOBILE|CHA PARKING LOT/G...| false|   false|0533|     005|   9|            54|      07|     1184304|     1818785|2004|04/15/2016 08:55:...|41.657911807|-87.601244288|"(41.657911807|
+|3666348|   HK761590|11/19/2004 07:45:...|063XX S HAMILTON AVE|0430|            BATTERY|AGGRAVATED: OTHER...|            SIDEWALK| false|   false|0726|     007|  15|            67|     04B|     1163120|     1862567|2004|04/15/2016 08:55:...|41.778524374|-87.677540732|"(41.778524374|
++-------+-----------+--------------------+--------------------+----+-------------------+--------------------+--------------------+------+--------+----+--------+----+--------------+--------+------------+------------+----+--------------------+------------+-------------+--------------+
+only showing top 5 rows
 </pre>
 
 <h2>Create Cassandra KeySpace</h2>
@@ -637,11 +647,16 @@ USE bulk_load;
 The source data had some inconsistencies that made it simpler just to load all the columns as text. To make the comparison accurate we will store the data in Cassandra in text format too.
 
 We will create a Cassandra table that matches the Oracle columns, with a partition key based on the crime ID.
+We're going to turn coimpression off in this table. 
+
+>Compression is on by default in Cassandra 3.0 - however the massive storage engine improvements for Cassandra 3.0 meant that even uncompressed data is still significantly smaller than compressed data in Cassandra 2.x. COmnsequently the general recommendation is to disable compression in Cassandra 3.x deployments.
 
 In cqlsh:
 
 <pre lang="sql">
-cqlsh:bulk_load> create table crimes (
+cqlsh:bulk_load> drop table if exists crimes;
+
+create table crimes (
 id                      text,
 case_number             text,
 incident_date           text,
@@ -664,7 +679,8 @@ updated_on              text,
 latitude                text,
 longitude               text, 
 location                text, 
-PRIMARY KEY (id));
+PRIMARY KEY (id))
+WITH compression = { 'sstable_compression' : '' };
 </pre>
 
 Check it's all there:
@@ -698,7 +714,7 @@ CREATE TABLE bulk_load.crimes (
     AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
     AND comment = ''
     AND compaction = {'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
-    AND compression = {'chunk_length_in_kb': '64', 'class': 'org.apache.cassandra.io.compress.LZ4Compressor'}
+    AND compression = {'enabled': 'false'}
     AND crc_check_chance = 1.0
     AND dclocal_read_repair_chance = 0.1
     AND default_time_to_live = 0
@@ -710,7 +726,9 @@ CREATE TABLE bulk_load.crimes (
     AND speculative_retry = '99PERCENTILE';
 </pre>
 
-Back to Spark...
+> Note that there are no settings for compression shown for this table - the data will not be compressed.
+
+Nack to Spark for the next bit...
 
 <h2>Change DataFrame Columns To Lower Case</h2>
 
@@ -750,7 +768,7 @@ root
  |-- LOCATION: string (nullable = true)
 </pre>
 
-DataFrames are immutable in Spark, so we can't modify the one we have - we need to create a new one with the correct column titles.
+DataFrames are immutable in Spark, so we can't modify the one we have - we need to create a new dataframe with the correct column titles.
 
 <h3>Create A New Lower-Case Column Name List</h3>
 <pre lang="scala">
@@ -837,42 +855,44 @@ cqlsh:bulk_load> select * from crimes where id='3666345';
 
 </pre>
 
-We can get some information about data size in Cassandra from the nodetool cfstats command:
+At the end of the run I used nodetool to tell me how much space had been occupied in Cassandra:
 <pre>
-$ nodetool cfstats bulk_load
 Keyspace: bulk_load
-	Read Count: 1
-	Read Latency: 0.113 ms.
+	Read Count: 0
+	Read Latency: NaN ms.
 	Write Count: 6156888
-	Write Latency: 0.0296818494992925 ms.
+	Write Latency: 0.027655199509882267 ms.
 	Pending Flushes: 0
 		Table: crimes
 		SSTable count: 6
-		Space used (live): 876227198
-		Space used (total): 876227198
+		Space used (live): 1704215924
+		Space used (total): 1704215924
 		Space used by snapshots (total): 0
-		Off heap memory used (total): 8725758
-		SSTable Compression Ratio: 0.46752276291246503
-		Number of keys (estimate): 6109619
-		Memtable cell count: 19074
-		Memtable data size: 10498992
-</pre>
+		Off heap memory used (total): 8543995
+		SSTable Compression Ratio: 0.0
+		Number of keys (estimate): 6111179
+		Memtable cell count: 14452
+		Memtable data size: 7936758
+		Memtable off heap memory used: 0
+</PRE>
+
+<h2>ASCII Storage - Analysis</h2>
+After the import into Cassandra has completed we can get some information about data size in Cassandra from the nodetool tablestats command:
 
 This indicates that the size of the same dataset stored in ASCII/text format in the three formats is as follows:
 - CSV (text) 1.4 GB
 - Oracle (as text) 1.7 GB
-- Cassandra (as text) 876MB Compressed.
+- Cassandra (as text) 1.7 GB
 
-The nodetool cfstats show us that the data in Cassandra has a compression ratio of 46% of the original size. The uncompressed size would be closer to 1.9 GB. 
-Compression is on by default in Cassandra 3. If we repeat the above exercise on a Cassandra table with compression turned off (using "WITH compression = { 'sstable_compression' : '' };" on the create table statement) we get the following:
-> stats pending
+When the test was run with compression on the data in Cassandra was 876MB, with a reported compression ratio of 46% of the original size.
 
-
-
-In the case of this compressed data, stored with a real-world Cassandra data replication factor of 3, the volume of data in a multi-node Cassandra datacenter would be 876 MB x 3 = 2,700 MB.
+In the case of compressed data, stored with a real-world Cassandra data replication factor of 3, the volume of data in a multi-node Cassandra datacenter would be 876 MB x 3 = 2,700 MB.
 Assuming the customer has fairly fast machines with fast, locally attached SSD storage, each DSE/Cassandra node might be expected to store 1 TB, so an initial cluster size of 3-5 machines would be recommended.
 
-Of course, it is also true that this is just one test with one table. in a "real-world" situation there may potentially be only a few tables, or a large number of tables. This data will need to be re-modelled, not just copied, when it moves from an Oracle relational model to a distributed, replicated NoSQL database model. The re-modelling, or transformation, usually involves an element of data de-normalisation and duplication, and in some cases this may have a significant impact on the volume of storage and the consequent number of DSE/Cassandra nodes that are required to accommodate the same data in DSE/Cassandra.<p>
+In a use case with 1.7 GB of uncompressed data the total volume when replicated 3 times would be 5.1 GB, suggesting a cluster size of minimum 5 nodes.
+
+<h3>Migration & Data Modelling</h3>
+Remember that this is just one test, with just one table. in a "real-world" situation there may potentially be only a few tables, or a large number of tables. This data will almost certainly need to be re-modelled, not just copied, when it moves from an Oracle relational model to a distributed, replicated NoSQL database model. The re-modelling, or transformation, usually involves an element of data de-normalisation and duplication in order to optimise query efficiency, and in some cases this may have a significant impact on the volume of storage and the consequent number of DSE/Cassandra nodes that are required to accommodate the same volume of data in DSE/Cassandra.<p>
 <br>
 Now to mix it up a bit with numeric values and see how that changes things...<p>
 <br>
