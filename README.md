@@ -154,7 +154,7 @@ Connected to Test Cluster at 127.0.0.1:9042.
 Use HELP for help.
 cqlsh> 
 </pre>
-Type exist in cqlsh to return to the shell prompt.
+Type exit in cqlsh to return to the shell prompt.
 <br>
 
 <H2>Identify Spark Master</h2>
