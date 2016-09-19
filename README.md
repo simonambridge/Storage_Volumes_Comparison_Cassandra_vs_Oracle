@@ -599,7 +599,7 @@ PRIMARY KEY (id))
 WITH compression = { 'sstable_compression' : '' };
 </pre>
 
-You can ceck it's all there in Cassandra:
+You can check it's all there in Cassandra:
 <pre lang="sql">
 cqlsh:bulk_load> desc table crimes;
 
