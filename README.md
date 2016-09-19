@@ -158,7 +158,7 @@ Type exit in cqlsh to return to the shell prompt.
 <br>
 
 <H2>Identify Spark Master</h2>
-We use the new DSE 5.0 format for the dse tool to get the address of the Spark Master in our cluster. 
+Using the new DSE 5.0 command format for the dse tool we get the address of the Spark Master in our cluster. 
 As we are using a single node for our cluster it will be no surprise that the Spark Master is also on our single node!
 <pre>
 $ dse client-tool spark master-address
@@ -219,6 +219,7 @@ To do this we need to log into Oracle SQLPlus as a privileged user (SYS or SYSTE
 <li>depending on your privileges you may be asked for a password when you log in as SYS or SYSTEM</li>
 <li>If you're already logged into SQLPlus as a non-system user, just type "connect / as sysdba" at the SQL> prompt</li>
 <p>
+
 Log in to SQLPlus:
 <pre lang="sql">
 $ sqlplus / as sysdba
@@ -287,6 +288,7 @@ Create the 'virtual' table based on the source data file.
 
 In the first test we will see what happens to data when it is transferred into Oracle and then to DSE/Cassandra, all in text format. This will make an interesting baseline comparison.<p>
 The second part of the exercise will be to build a more representative test by storing the data using a wider variety of datatypes, e.g. decimal, binary, date etc.
+First of all, we need to create the external table that we defined. What this does is provide Oracle with a template to read the external file:
 <pre lang="sql">
 drop table xternal_crime_data;
 create table xternal_crime_data
@@ -387,10 +389,13 @@ $ rm /app/oracle/downloads/*.log
 Nothing happens until you attempt to read data from the table. You can track progress by using tail -f or less to view the log and bad files.
 
 <h2>Create A Table, Physically Load Data Into Oracle</h2>
-Create a physical table in the Oracle database using the "...as select" SQL syntax:
+Now we're going to create a real table in the Oracle database and copy the data in from the external file via the external table definition. 
+We can create a physical table in the Oracle database using the "...as select" SQL syntax e.g.:
 <pre lang="sql">
 SQL> create table crimes as select * from xternal_crime_data;
 </pre>
+
+We now have the data in the crimes tables.
 
 Let's put a primary key and index on that table:
 <pre lang="sql">
@@ -405,8 +410,8 @@ SQL> alter table crimes add constraint crimes_pk primary key(id);
 Table altered.
 </pre>
 
-We now have an index on our primary key which is now showing as a "NOT NULL" column.
-Of course in the real-world, we would make Crime ID a unique index, but for this exercise I wanted to avoid having to worry about duplicate keys.
+We now have an index on our primary key which (showing as a "NOT NULL" column).
+In the real-world, we would probably make Crime ID a unique index.
 
 <pre lang="sql">
 SQL> desc crimes
@@ -437,8 +442,8 @@ SQL> desc crimes
 </pre>
 <br>
 <h2>Check Volumes In Oracle</h2>
-At this point we have loaded the CSV source data (1.6 GB, 6.1 million rows) into an Oracle table.
-We need to find out how big is it?
+At this point we have loaded the CSV source data (1.6 GB, 6.1 million rows) into a table in Oracle.
+We need to find out - how big is it?
 
 <h3>What Objects Have We Created?</h3>
 What objects does bulk_load own - the system dictionary table DBA_TABLES will tell us:
@@ -457,7 +462,8 @@ XTERNAL_CRIME_DATA
 
 <h3>How Much Space Is Oracle Using?</h3>
 
-Run this next query to determine total storage for a user including indexes, blobs etc. You will be prompted for the Oracle user to check, in uppercase - in my case BULK_LOAD:
+Run this next query to determine total storage for a user including indexes, blobs etc. 
+You will be prompted for the username of the Oracle user that you want to check, in uppercase - in this case it's BULK_LOAD:
 
 <pre lang="sql">
 COLUMN TABLE_NAME FORMAT A32
@@ -509,17 +515,15 @@ So a 1.4GB CSV file has become 1.7GB of storage in Oracle.<p>
 <br>
 <H1>Copy Data From Oracle To Cassandra</H1>
 We now have 1.7GB of data in Oracle. 
-The next objective is to see how much space that 1.7GB occupies when it is copied to Cassandra, and what impact Cassandra on-disk compression and the new Cassandra 3.0 storage engine will have on those numbers.
+The next objective is to see how much space that the 1.7GB of data in Oracle occupies when it is copied to Cassandra. What impact does Cassandra on-disk compression and the new Cassandra 3.0 storage engine  have on those numbers?
 
-
-So all is looking good on the Oracle side. Now time to turn to Cassandra and Spark.
+So all is looking good on the Oracle side. Now time to turn to Cassandra and Spark. We're going to use Spark to read the data from the Oracle table via JDBC using the Oracle JDBC driver.
 
 <h2>Download Oracle ojdbc7.jar</h2>
 We have to add the Oracle JDBC jar file to our Spark classpath so that Spark knows how to talk to the Oracle database.
 
-
 <br>
-<h2>Using The Oracle JDBC Driver</h2>
+<h3>Using The Oracle JDBC Driver</h3>
 For this test we only need the jdbc driver file on our single (SparkMaster) node.
 In a bigger cluster we would need to distribute it to the slave nodes too.
 
@@ -534,106 +538,18 @@ spark.driver.extraClassPath = /app/oracle/downloads/ojdbc7.jarr
 spark.executor.extraClassPath = /app/oracle/downloads/ojdbc7.jar
 </pre>
 
-<h3>Restart DSE</h3>
+<h2>Restart DSE</h2>
 <pre>
 $ sudo service dse stop
 $ sudo service dse start
 </pre>
 
-
-<h2>Start The Spark REPL</h2>
-I'm passing to the path to the ojdbc7.jar file on the command line (shouldn't be needed as the driver path is defined in the spark-defaults.conf file now, but it seems not to work without it).
-
-<pre>
-$ dse spark --driver-class-path /app/oracle/downloads/ojdbc7.jar -deprecation
-Welcome to
-      ____              __
-     / __/__  ___ _____/ /__
-    _\ \/ _ \/ _ `/ __/  '_/
-   /___/ .__/\_,_/_/ /_/\_\   version 1.6.1
-      /_/
-
-Using Scala version 2.10.5 (Java HotSpot(TM) 64-Bit Server VM, Java 1.8.0_77)
-Type in expressions to have them evaluated.
-Type :help for more information.
-Initializing SparkContext with MASTER: spark://127.0.0.1:7077
-Created spark context..
-Spark context available as sc.
-Hive context available as sqlContext. Will be initialized on first use.
-
-scala> 
-</pre>
-<h3>Import Some UsefulClasses</h3>
-
-Now import some classes we might need:
-<pre lang="java">
-import com.datastax.spark.connector._
-import com.datastax.spark.connector.cql.CassandraConnector
-import org.apache.log4j.{Level, Logger}
-import org.apache.spark.{SparkConf, SparkContext}
-import java.io._
-</pre>
-Next, load the data from the Oracle table using jdbc.<p>
-For Spark versions below 1.4:
-<pre lang="scala">
-scala> val crimes = sqlContext.load("jdbc", Map("url" -> "jdbc:oracle:thin:bulk_load/bulk_load@localhost:1521/orcl", "dbtable" -> "crime_data"))
-</pre>
-For Spark 1.4 onwards:
-<pre lang="scala">
-scala> val crimes = sqlContext.read.format("jdbc").option("url", "jdbc:oracle:thin:bulk_load/bulk_load@localhost:1521/orcl").option("driver", "oracle.jdbc.OracleDriver").option("dbtable", "crimes").load()
-</pre>
-Response:
-<pre lang="scala">
-crimes: org.apache.spark.sql.DataFrame = [ID: string, CASE_NUMBER: string, INCIDENT_DATE: string, BLOCK: string, IUCR: string, PRIMARY_TYPE: string, DESCRIPTION: string, LOCATION_DESCRIPTION: string, ARREST: string, DOMESTIC: string, BEAT: string, DISTRICT: string, WARD: string, COMMUNITY_AREA: string, FBI_CODE: string, X_COORDINATE: string, Y_COORDINATE: string, YEAR: string, UPDATED_ON: string, LATITUDE: string, LONGITUDE: string, LOCATION: string]
-</pre>
-
-Now that we've created a dataframe using the jdbc method shown above, we can use printSchema() to look at the dataframe schema. You'll notice that it looks a lot like a table. That's deliberate because it means that we can use it to manipulate large volumes of tabular data:
-
-<pre lang="scala">
-scala> crimes.printSchema()
-root
- |-- ID: string (nullable = false)
- |-- CASE_NUMBER: string (nullable = true)
- |-- INCIDENT_DATE: string (nullable = true)
- |-- BLOCK: string (nullable = true)
- |-- IUCR: string (nullable = true)
- |-- PRIMARY_TYPE: string (nullable = true)
- |-- DESCRIPTION: string (nullable = true)
- |-- LOCATION_DESCRIPTION: string (nullable = true)
- |-- ARREST: string (nullable = true)
- |-- DOMESTIC: string (nullable = true)
- |-- BEAT: string (nullable = true)
- |-- DISTRICT: string (nullable = true)
- |-- WARD: string (nullable = true)
- |-- COMMUNITY_AREA: string (nullable = true)
- |-- FBI_CODE: string (nullable = true)
- |-- X_COORDINATE: string (nullable = true)
- |-- Y_COORDINATE: string (nullable = true)
- |-- YEAR: string (nullable = true)
- |-- UPDATED_ON: string (nullable = true)
- |-- LATITUDE: string (nullable = true)
- |-- LONGITUDE: string (nullable = true)
- |-- LOCATION: string (nullable = true)
-</pre>
-
-We can use the dataframe .show() method to display the first x:int rows in the table:
-<pre lang="scala">
-scala> crimes.show(5)
-+-------+-----------+--------------------+--------------------+----+-------------------+--------------------+--------------------+------+--------+----+--------+----+--------------+--------+------------+------------+----+--------------------+------------+-------------+--------------+
-|     ID|CASE_NUMBER|       INCIDENT_DATE|               BLOCK|IUCR|       PRIMARY_TYPE|         DESCRIPTION|LOCATION_DESCRIPTION|ARREST|DOMESTIC|BEAT|DISTRICT|WARD|COMMUNITY_AREA|FBI_CODE|X_COORDINATE|Y_COORDINATE|YEAR|          UPDATED_ON|    LATITUDE|    LONGITUDE|      LOCATION|
-+-------+-----------+--------------------+--------------------+----+-------------------+--------------------+--------------------+------+--------+----+--------+----+--------------+--------+------------+------------+----+--------------------+------------+-------------+--------------+
-|     ID|Case Number|                Date|               Block|IUCR|       Primary Type|         Description|Location Description|Arrest|Domestic|Beat|District|Ward|Community Area|FBI Code|X Coordinate|Y Coordinate|Year|          Updated On|    Latitude|    Longitude|      Location|
-|3666345|   HK764692|11/18/2004 12:00:...|    118XX S LOWE AVE|0890|              THEFT|       FROM BUILDING|           RESIDENCE| false|   false|0524|     005|  34|            53|      06|     1174110|     1826325|2004|04/15/2016 08:55:...| 41.67883435|-87.638323571| "(41.67883435|
-|3666346|   HK757211|11/17/2004 08:00:...|014XX N MASSASOIT...|0560|            ASSAULT|              SIMPLE|              STREET| false|   false|2531|     025|  29|            25|     08A|     1137744|     1909068|2004|04/15/2016 08:55:...|41.906623511|-87.769453017|"(41.906623511|
-|3666347|   HK764653|11/21/2004 10:00:...|  130XX S DREXEL AVE|0910|MOTOR VEHICLE THEFT|          AUTOMOBILE|CHA PARKING LOT/G...| false|   false|0533|     005|   9|            54|      07|     1184304|     1818785|2004|04/15/2016 08:55:...|41.657911807|-87.601244288|"(41.657911807|
-|3666348|   HK761590|11/19/2004 07:45:...|063XX S HAMILTON AVE|0430|            BATTERY|AGGRAVATED: OTHER...|            SIDEWALK| false|   false|0726|     007|  15|            67|     04B|     1163120|     1862567|2004|04/15/2016 08:55:...|41.778524374|-87.677540732|"(41.778524374|
-+-------+-----------+--------------------+--------------------+----+-------------------+--------------------+--------------------+------+--------+----+--------+----+--------------+--------+------------+------------+----+--------------------+------------+-------------+--------------+
-only showing top 5 rows
-</pre>
-
 <h2>Create Cassandra KeySpace</h2>
-The first thing that we need to do in Cassandra is create a keyspace to contain the table that we will create. I'm using a replication factor of 1 because I have one node in my development cluster. For most production deployments we recommend a multi-datacenter Active-Active HA setup across geographical regions using NetworkTopologyStrategy with RF=3:
+Before we start pulling data out of Oracle we need somewhere to put it. So we need to create a table in Cassandra.
 
+The first thing that we need to do in Cassandra is create a keyspace to contain the table that will hold the data. I'm using a replication factor of 1 for my data because I have just one node in my development cluster. For most production deployments we recommend a multi-datacenter Active-Active HA setup, across geographical regions where necessary, using NetworkTopologyStrategy with RF=3:
+
+We create the Cassandra table in the CQL shell.
 Log into cqlsh 
 > If you didn't change the IP defaults in cassandra.yaml then just type 'cqlsh' - if you changed the IP to be the host IP then you may need to supply the hostname e.g. 'cqlsh [hostname]'.
 
@@ -644,14 +560,14 @@ USE bulk_load;
 </pre>
 <h2>Create A Cassandra Table</h2>
 
-The source data had some inconsistencies that made it simpler just to load all the columns as text. To make the comparison accurate we will store the data in Cassandra in text format too.
+The source data had some inconsistencies that made it simpler to load all the data into Oracle as text columns. To make the comparison accurate we'll store the data in Cassandra in text format too.
 
-We will create a Cassandra table that matches the Oracle columns, with a partition key based on the crime ID.
-We're going to turn coimpression off in this table. 
+We'll create a Cassandra table that matches the Oracle columns, with a partition key based on the crime ID.
+We're going to turn compression off in this table, again in the interests of making it a valid comparison with Oracle. 
 
 >Compression is on by default in Cassandra 3.0 - however the massive storage engine improvements for Cassandra 3.0 meant that even uncompressed data is still significantly smaller than compressed data in Cassandra 2.x. COmnsequently the general recommendation is to disable compression in Cassandra 3.x deployments.
 
-In cqlsh:
+In cqlsh create the crimes table:
 
 <pre lang="sql">
 cqlsh:bulk_load> drop table if exists crimes;
@@ -683,7 +599,7 @@ PRIMARY KEY (id))
 WITH compression = { 'sstable_compression' : '' };
 </pre>
 
-Check it's all there:
+You can ceck it's all there in Cassandra:
 <pre lang="sql">
 cqlsh:bulk_load> desc table crimes;
 
@@ -728,18 +644,60 @@ CREATE TABLE bulk_load.crimes (
 
 > Note that there are no settings for compression shown for this table - the data will not be compressed.
 
-Back to Spark for the next bit...
+No we can go back to Spark to start moving the data to our new Cassandra table...
 
-<h2>Change DataFrame Columns To Lower Case</h2>
+<h2>Start The Spark REPL</h2>
+We'll use the Spark REPL (shell) to move the data from Oracle to Cassandra. We can use Spark Dataframes to read from Oracle via JDBC and then write back out to Cassandra. The beauty of processing with Spark is that you can do so much with the data while it's in flight - perfect for migrating and de-normalising relational schemas.
 
-If you try to save your dataframe to Cassandra now (using the Spark-Cassandra connector) it will fail with an error message saying that columns don't exist e.g. 
-<pre lang="sql">
-java.util.NoSuchElementException: Columns not found in table bulk_load.crimes: ID, CASE_NUMBER, INCIDENT_DATE
+I'm passing to the path to the ojdbc7.jar file on the command line (shouldn't be needed as the driver path is defined in the spark-defaults.conf file now, but it seems not to work without it).
+
+<pre>
+$ dse spark --driver-class-path /app/oracle/downloads/ojdbc7.jar -deprecation
+Welcome to
+      ____              __
+     / __/__  ___ _____/ /__
+    _\ \/ _ \/ _ `/ __/  '_/
+   /___/ .__/\_,_/_/ /_/\_\   version 1.6.1
+      /_/
+
+Using Scala version 2.10.5 (Java HotSpot(TM) 64-Bit Server VM, Java 1.8.0_77)
+Type in expressions to have them evaluated.
+Type :help for more information.
+Initializing SparkContext with MASTER: spark://127.0.0.1:7077
+Created spark context..
+Spark context available as sc.
+Hive context available as sqlContext. Will be initialized on first use.
+
+scala> 
 </pre>
-It does this even though they exist in both tables. The problem is that the connector expects the column title case in the dataframe to match the column title case in the Cassandra table. In Cassandra column names/titles are always in lower case, so the dataframe names must match.
+<h3>Import Some UsefulClasses</h3>
 
-So we need to modify our dataframe schema.... Here's a reminder of our raw employees dataframe schema again:
-scala> crimes.printSchema()
+Now import some classes we might need:
+<pre lang="java">
+import com.datastax.spark.connector._
+import com.datastax.spark.connector.cql.CassandraConnector
+import org.apache.log4j.{Level, Logger}
+import org.apache.spark.{SparkConf, SparkContext}
+import java.io._
+</pre>
+
+<h3>Load The Data to a DataFrame Via JDBC</h3>
+Next, load the data from the Oracle table using JDBC.<p>
+For Spark versions below 1.4:
+<pre lang="scala">
+scala> val crimes = sqlContext.load("jdbc", Map("url" -> "jdbc:oracle:thin:bulk_load/bulk_load@localhost:1521/orcl", "dbtable" -> "crime_data"))
+</pre>
+For Spark 1.4 onwards:
+<pre lang="scala">
+scala> val crimes = sqlContext.read.format("jdbc").option("url", "jdbc:oracle:thin:bulk_load/bulk_load@localhost:1521/orcl").option("driver", "oracle.jdbc.OracleDriver").option("dbtable", "crimes").load()
+</pre>
+Response:
+<pre lang="scala">
+crimes: org.apache.spark.sql.DataFrame = [ID: string, CASE_NUMBER: string, INCIDENT_DATE: string, BLOCK: string, IUCR: string, PRIMARY_TYPE: string, DESCRIPTION: string, LOCATION_DESCRIPTION: string, ARREST: string, DOMESTIC: string, BEAT: string, DISTRICT: string, WARD: string, COMMUNITY_AREA: string, FBI_CODE: string, X_COORDINATE: string, Y_COORDINATE: string, YEAR: string, UPDATED_ON: string, LATITUDE: string, LONGITUDE: string, LOCATION: string]
+</pre>
+
+Now that we've created a dataframe using the jdbc method shown above, we can use the dataframe method printSchema() to look at the dataframe schema. 
+You'll notice that it looks a lot like a table. That's great because it means that we can use it to manipulate large volumes of tabular data:
 
 <pre lang="scala">
 scala> crimes.printSchema()
@@ -767,6 +725,32 @@ root
  |-- LONGITUDE: string (nullable = true)
  |-- LOCATION: string (nullable = true)
 </pre>
+
+We can use the dataframe .show() method to display the first x:int rows in the table:
+<pre lang="scala">
+scala> crimes.show(5)
++-------+-----------+--------------------+--------------------+----+-------------------+--------------------+--------------------+------+--------+----+--------+----+--------------+--------+------------+------------+----+--------------------+------------+-------------+--------------+
+|     ID|CASE_NUMBER|       INCIDENT_DATE|               BLOCK|IUCR|       PRIMARY_TYPE|         DESCRIPTION|LOCATION_DESCRIPTION|ARREST|DOMESTIC|BEAT|DISTRICT|WARD|COMMUNITY_AREA|FBI_CODE|X_COORDINATE|Y_COORDINATE|YEAR|          UPDATED_ON|    LATITUDE|    LONGITUDE|      LOCATION|
++-------+-----------+--------------------+--------------------+----+-------------------+--------------------+--------------------+------+--------+----+--------+----+--------------+--------+------------+------------+----+--------------------+------------+-------------+--------------+
+|     ID|Case Number|                Date|               Block|IUCR|       Primary Type|         Description|Location Description|Arrest|Domestic|Beat|District|Ward|Community Area|FBI Code|X Coordinate|Y Coordinate|Year|          Updated On|    Latitude|    Longitude|      Location|
+|3666345|   HK764692|11/18/2004 12:00:...|    118XX S LOWE AVE|0890|              THEFT|       FROM BUILDING|           RESIDENCE| false|   false|0524|     005|  34|            53|      06|     1174110|     1826325|2004|04/15/2016 08:55:...| 41.67883435|-87.638323571| "(41.67883435|
+|3666346|   HK757211|11/17/2004 08:00:...|014XX N MASSASOIT...|0560|            ASSAULT|              SIMPLE|              STREET| false|   false|2531|     025|  29|            25|     08A|     1137744|     1909068|2004|04/15/2016 08:55:...|41.906623511|-87.769453017|"(41.906623511|
+|3666347|   HK764653|11/21/2004 10:00:...|  130XX S DREXEL AVE|0910|MOTOR VEHICLE THEFT|          AUTOMOBILE|CHA PARKING LOT/G...| false|   false|0533|     005|   9|            54|      07|     1184304|     1818785|2004|04/15/2016 08:55:...|41.657911807|-87.601244288|"(41.657911807|
+|3666348|   HK761590|11/19/2004 07:45:...|063XX S HAMILTON AVE|0430|            BATTERY|AGGRAVATED: OTHER...|            SIDEWALK| false|   false|0726|     007|  15|            67|     04B|     1163120|     1862567|2004|04/15/2016 08:55:...|41.778524374|-87.677540732|"(41.778524374|
++-------+-----------+--------------------+--------------------+----+-------------------+--------------------+--------------------+------+--------+----+--------+----+--------------+--------+------------+------------+----+--------------------+------------+-------------+--------------+
+only showing top 5 rows
+</pre>
+
+<h3>Change DataFrame Columns To Lower Case</h3>
+Go back to the window running the Spark REPL.
+
+Before we can move the data to Cassandra we have to work around a 'feature' of the spark-cassandra connector. If you try to save your dataframe to Cassandra now it will fail with an error message saying that none of the columns exist e.g. 
+<pre lang="sql">
+java.util.NoSuchElementException: Columns not found in table bulk_load.crimes: ID, CASE_NUMBER, INCIDENT_DATE
+</pre>
+It does this even though they do exist in both tables. The problem is that the connector expects the column title text case in the dataframe to match the column title text case in the Cassandra table. In Cassandra, column names/titles are always in lower case, so the dataframe names must match.
+
+So we need to modify our dataframe schema.... 
 
 DataFrames are immutable in Spark, so we can't modify the one we have - we need to create a new dataframe with the correct column titles.
 
@@ -891,12 +875,13 @@ Assuming the customer has fairly fast machines with fast, locally attached SSD s
 
 In a use case with 1.7 GB of uncompressed data the total volume when replicated 3 times would be 5.1 GB, suggesting a cluster size of minimum 5 nodes.
 
-<h3>Migration & Data Modelling</h3>
+<h2>Migration & Data Modelling</h2>
 Remember that this is just one test, with just one table. in a "real-world" situation there may potentially be only a few tables, or a large number of tables. This data will almost certainly need to be re-modelled, not just copied, when it moves from an Oracle relational model to a distributed, replicated NoSQL database model. The re-modelling, or transformation, usually involves an element of data de-normalisation and duplication in order to optimise query efficiency, and in some cases this may have a significant impact on the volume of storage and the consequent number of DSE/Cassandra nodes that are required to accommodate the same volume of data in DSE/Cassandra.<p>
 <br>
 Now to mix it up a bit with numeric values and see how that changes things...<p>
 <br>
-<H2>Migrate Data Using Other (e.g. Numeric And Boolean) Data Types</h2>
+
+<H1>Migrate Data Using Other (e.g. Numeric And Boolean) Data Types</h1>
 The previous part of the exercise was to tranfer data across from Oracle to Cassandra, storing the data in text format in both systems.
 Now in the next part we are going to use a richer array of datatypes to make our data sizing more interesting - and more realistic.
 
