@@ -730,6 +730,8 @@ scala> val crimes = sqlContext.read.format("jdbc")
 
 > Don’t create too many partitions in parallel on a large cluster, otherwise Spark might crash the external database.
 
+You can read more about this here: http://spark.apache.org/docs/latest/sql-programming-guide.html#jdbc-to-other-databases
+
 Now that we've created a dataframe using the jdbc method shown above, we can use the dataframe method printSchema() to look at the dataframe schema. 
 You'll notice that it looks a lot like a table. That's great because it means that we can use it to manipulate large volumes of tabular data:
 
