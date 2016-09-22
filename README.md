@@ -829,7 +829,7 @@ Response:
 <pre lang="scala">
 crimes_lc: org.apache.spark.sql.DataFrame = [id: string, case_number: string, incident_date: string, block: string, iucr: string, primary_type: string, description: string, location_description: string, arrest: string, domestic: string, beat: string, district: string, ward: string, community_area: string, fbi_code: string, x_coordinate: string, y_coordinate: string, year: string, updated_on: string, latitude: string, longitude: string, location: string]
 </pre>
-And now if we look at the schema of our new datafram - hey presto! - it's got lower case column titles.
+And now if we look at the schema of our new dataframe - hey presto! - it's got lower case column titles.
 <pre lang="scala">
 scala> crimes_lc.printSchema()
 root
