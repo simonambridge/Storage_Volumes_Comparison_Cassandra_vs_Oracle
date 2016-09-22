@@ -397,6 +397,11 @@ SQL> create table crimes as select * from xternal_crime_data;
 
 We now have the data in the crimes tables.
 
+The header record is in the table and we don't want it there. Delete it (where ID is not numeric) with the following statement:
+<pre lang='sql'>
+SQL> delete from crimes where length(trim(translate(ID, ' +-.0123456789', ' '))) is not null;  
+</pre>
+
 Let's put a primary key and index on that table:
 <pre lang="sql">
 SQL> create index crime_id on crimes(id);
@@ -696,7 +701,7 @@ Response:
 crimes: org.apache.spark.sql.DataFrame = [ID: string, CASE_NUMBER: string, INCIDENT_DATE: string, BLOCK: string, IUCR: string, PRIMARY_TYPE: string, DESCRIPTION: string, LOCATION_DESCRIPTION: string, ARREST: string, DOMESTIC: string, BEAT: string, DISTRICT: string, WARD: string, COMMUNITY_AREA: string, FBI_CODE: string, X_COORDINATE: string, Y_COORDINATE: string, YEAR: string, UPDATED_ON: string, LATITUDE: string, LONGITUDE: string, LOCATION: string]
 </pre>
 
-There are some options available that allow you to tune how Spark uses the JDBC driver. The JDBC datasource supports partitionning so that you can specify how Spark will parallelize the load operation from the JDBC source. By default a JDBC load will be sequential which is much less efficient where multiple workers are available.
+There are some options available that allow you to tune how Spark uses the JDBC driver. The JDBC datasource supports partitionning so that you can specify how Spark will parallelize the load operation from the JDBC source. By default a JDBC load will be sequential (e.g. 1 partition, 1 worker) which is much less efficient where multiple workers are available.
 
 The options describe how to partition the table when reading in parallel from multiple workers:
 <ul>
@@ -711,25 +716,37 @@ These options must all be specified if any of them is specified.
 <li>partitionColumn must be a numeric column from the table in question used to partition the table.</li>
 
 <li>Notice that lowerBound and upperBound are just used to decide the partition stride, not for filtering the rows in table. So all rows in the table will be partitioned and returned.</li>
-<li>fetchSize	is the JDBC fetch size, which determines how many rows to fetch per round trip. This can help performance on JDBC drivers which default to low fetch size (eg. Oracle with 10 rows).</li>
+<li>fetchSize is the JDBC fetch size, which determines how many rows to fetch per round trip. This can help performance on JDBC drivers which default to low fetch size (eg. Oracle with 10 rows).</li>
 </ul>
 <br>
-So this might be an alternative load command for the departments table using some of those options:
+An example load command using those options might look like this (<b>Note:</b> if you partition by column then the partitioning column <b>must</b> be a number columne in the source table):
 
 <pre lang="scala">
-scala> val crimes = sqlContext.read.format("jdbc")
-                  .option("url", "jdbc:oracle:thin:bulk_load/bulk_load@localhost:1521/orcl")
+scala> val departments = sqlContext.read.format("jdbc")
+                  .option("url", "jdbc:oracle:thin:br/hr@localhost:1521/orcl")
                   .option("driver", "oracle.jdbc.OracleDriver")
-                  .option("dbtable", "crimes")
-                  .option("partitionColumn", "ID")
+                  .option("dbtable", "departments")
+                  .option("partitionColumn", "DEPARTMENT_ID")
                   .option("lowerBound", "1")
-                  .option("upperBound", "100000000")
+                  .option("upperBound", "10000")
                   .option("numPartitions", "4")
+                  .option("fetchsize", "1000")
                   .load()
 </pre>
 
 > Don’t create too many partitions in parallel on a large cluster, otherwise Spark might crash the external database.
 
+In our case we can't partition because the ID collumn is a text column but I can set the fetchsize:
+<pre lang="scala">
+val crimes = sqlContext.read.format("jdbc")
+                  .option("url", "jdbc:oracle:thin:bulk_load/bulk_load@localhost:1521/orcl")
+                  .option("driver", "oracle.jdbc.OracleDriver")
+                  .option("dbtable", "crimes")
+                  .option("fetchsize", "1000")
+                  .load()
+</pre>
+
+You should experiment with these options when you load your data on your infrastructure.
 You can read more about this here: http://spark.apache.org/docs/latest/sql-programming-guide.html#jdbc-to-other-databases
 
 At this point the JDBC statement has been validated but Spark hasn't yet checked the physical data (e.g. if you provide an invalid partitioning column you won't get an error message until you try to read the data).
