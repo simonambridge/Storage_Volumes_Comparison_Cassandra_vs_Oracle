@@ -570,7 +570,7 @@ The source data had some inconsistencies that made it simpler to load all the da
 We'll create a Cassandra table that matches the Oracle columns, with a partition key based on the crime ID.
 We're going to turn compression off in this table, again in the interests of making it a valid comparison with Oracle. 
 
->Compression is on by default in Cassandra 3.0 - however the massive storage engine improvements for Cassandra 3.0 meant that even uncompressed data is still significantly smaller than compressed data in Cassandra 2.x. COmnsequently the general recommendation is to disable compression in Cassandra 3.x deployments.
+>Compression is on by default in Cassandra 3.0 - however the massive storage engine improvements for Cassandra 3.0 means that even uncompressed data is still significantly smaller than compressed data in Cassandra 2.x. The compression overhead is not an issue but it obviously helps if you don't need compression. Consequently the general recommendation is to disable compression in Cassandra 3.x deployments.
 
 In cqlsh create the crimes table:
 
