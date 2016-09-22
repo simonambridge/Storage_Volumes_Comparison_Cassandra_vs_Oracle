@@ -721,7 +721,7 @@ scala> val crimes = sqlContext.read.format("jdbc")
                   .option("url", "jdbc:oracle:thin:bulk_load/bulk_load@localhost:1521/orcl")
                   .option("driver", "oracle.jdbc.OracleDriver")
                   .option("dbtable", "crimes")
-                  .option("partitionColumn", "DEPARTMENT_ID")
+                  .option("partitionColumn", "ID")
                   .option("lowerBound", "1")
                   .option("upperBound", "100000000")
                   .option("numPartitions", "4")
@@ -731,6 +731,8 @@ scala> val crimes = sqlContext.read.format("jdbc")
 > Don’t create too many partitions in parallel on a large cluster, otherwise Spark might crash the external database.
 
 You can read more about this here: http://spark.apache.org/docs/latest/sql-programming-guide.html#jdbc-to-other-databases
+
+At this point the JDBC statement has been validated but Spark hasn't yet checked the physical data (e.g. if you provide an invalid partitioning column you won't get an error message until you try to read the data).
 
 Now that we've created a dataframe using the jdbc method shown above, we can use the dataframe method printSchema() to look at the dataframe schema. 
 You'll notice that it looks a lot like a table. That's great because it means that we can use it to manipulate large volumes of tabular data:
