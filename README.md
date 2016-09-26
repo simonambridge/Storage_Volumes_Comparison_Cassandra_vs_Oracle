@@ -1,4 +1,4 @@
-<h1>Migrating A Large Data Set From CSV To Oracle 12c To Cassandra 3.0 - A look at storage impact</h1>
+<h1>Migrating A Large ASCII Data Set From CSV To Oracle 12c To Cassandra 3.0 - A look at storage impact</h1>
 The objective of this exercise is to demonstrate how the migration of data from CSV to Oracle to Cassandra can change the required underlying storage volume of the data. How do data volumes change between pure ASCII source records versus records stored in tables in an Oracle database versus records stored in tables in a DSE/Cassandra database?
 
 Here is the high-level plan:
