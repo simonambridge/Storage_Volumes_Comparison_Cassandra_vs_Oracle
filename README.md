@@ -933,35 +933,8 @@ In a use case with 1.7 GB of uncompressed data the total volume when replicated 
 <h2>Migration & Data Modelling</h2>
 Remember that this is just one test, with just one table. in a "real-world" situation there may potentially be only a few tables, or a large number of tables. This data will almost certainly need to be re-modelled, not just copied, when it moves from an Oracle relational model to a distributed, replicated NoSQL database model. The re-modelling, or transformation, usually involves an element of data de-normalisation and duplication in order to optimise query efficiency, and in some cases this may have a significant impact on the volume of storage and the consequent number of DSE/Cassandra nodes that are required to accommodate the same volume of data in DSE/Cassandra.<p>
 <br>
-Now to mix it up a bit with numeric values and see how that changes things...<p>
-<br>
 
-<H1>Migrate Data Using Other (e.g. Numeric And Boolean) Data Types</h1>
-The previous part of the exercise was to tranfer data across from Oracle to Cassandra, storing the data in text format in both systems.
-Now in the next part we are going to use a richer array of datatypes to make our data sizing more interesting - and more realistic.
 
-We can drop some of the stuff that we've been using that we don't need anymore.
-In SQL Plus:
-SQL> connect bulk_load/bulk_load;
-connected
-</pre>
-<drop the tables from the last exercise:
-<pre lang="sql">
-SQL> truncate table crime_data;
-
-Table truncated.
-
-SQL> drop table crime_data;
-
-Table dropped.
-
-SQL> 
-</pre>
-In cqlsh:
-<pre lang="sql">
-cqlsh:bulk_load> truncate table crimes;
-cqlsh:bulk_load> drop table crimes;
-</pre>
 
 <H1>Appendix 1 - Other Stuff</H1>
 <i>An alternative interesting-looking source file is an airline flight performance statistics 
