@@ -796,7 +796,7 @@ scala> crimes.show(5)
 only showing top 5 rows
 </pre>
 
-<h3>Change DataFrame Columns To Lower Case</h3>
+<h3>Change DataFrame Column Names To Lower Case</h3>
 Go back to the window running the Spark REPL.
 
 Before we can move the data to Cassandra we have to work around a 'feature' of the spark-cassandra connector. If you try to save your dataframe to Cassandra now it will fail with an error message saying that none of the columns exist e.g. 
