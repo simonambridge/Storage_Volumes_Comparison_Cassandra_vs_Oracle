@@ -931,7 +931,7 @@ Assuming the customer has fairly fast machines with fast, locally attached SSD s
 In a use case with 1.7 GB of uncompressed data the total volume when replicated 3 times would be 5.1 GB, suggesting a cluster size of minimum 5 nodes.
 
 <h2>Migration & Data Modelling</h2>
-Remember that this is just one test, with just one table. in a "real-world" situation there may potentially be only a few tables, or a large number of tables. This data will almost certainly need to be re-modelled, not just copied, when it moves from an Oracle relational model to a distributed, replicated NoSQL database model. The re-modelling, or transformation, usually involves an element of data de-normalisation and duplication in order to optimise query efficiency, and in some cases this may have a significant impact on the volume of storage and the consequent number of DSE/Cassandra nodes that are required to accommodate the same volume of data in DSE/Cassandra.<p>
+Remember that this is just one test, with just one table. In a "real-world" situation there may potentially be only a few tables, or a large number of tables. This data will almost certainly need to be re-modelled, not just copied, when it moves from an Oracle relational model to a distributed, replicated NoSQL database model. The re-modelling, or transformation, usually involves an element of data de-normalisation and duplication in order to optimise query efficiency, and in some cases this may have a significant impact on the volume of storage and the consequent number of DSE/Cassandra nodes that are required to accommodate the same volume of data in DSE/Cassandra.<p>
 <br>
 
 
